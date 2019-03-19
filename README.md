@@ -26,6 +26,3 @@ k8s-master   Ready      master   3m43s   v1.13.4
 node-1       Ready      <none>   118s    v1.13.4
 node-2       NotReady   <none>   13s     v1.13.4
 ```
-
-### Dashboard access
-Access dashboard on http://localhost:8001/api/v1/namespaces/kube-system/services/kubernetes-dashboard/proxy
