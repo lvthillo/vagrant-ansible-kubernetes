@@ -32,8 +32,7 @@
       update_cache: yes
     vars:
       packages:
-      - docker-ce 
-      - docker-ce-cli 
+      - docker-ce=18.06.2~ce~3-0~ubuntu
       - containerd.io
     notify:
       - docker status
@@ -74,9 +73,9 @@
       update_cache: yes
     vars:
       packages:
-        - kubelet 
-        - kubeadm 
-        - kubectl
+        - kubelet=1.14.0-00
+        - kubeadm=1.14.0-00
+        - kubectl=1.14.0-00
 
   - name: Initialize the Kubernetes cluster using kubeadm
     command: kubeadm init --apiserver-advertise-address="192.168.50.10" --apiserver-cert-extra-sans="192.168.50.10" --node-name k8s-master --pod-network-cidr=192.168.0.0/16
