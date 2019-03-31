@@ -77,6 +77,19 @@
         - kubeadm=1.14.0-00
         - kubectl=1.14.0-00
 
+  - name: Get IP eth1 addr
+    shell: ifconfig eth1 | grep 'inet' | cut -d{{':'}} -f2 | awk '{ print $2 }'
+    register: output
+
+  - name: Configure kubelet
+    shell: echo 'Environment="KUBELET_EXTRA_ARGS=--node-ip={{ output.stdout }}"' >> /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+
+  - name: Disable IP tables
+    shell: |
+      echo "net.bridge.bridge-nf-call-iptables=1" >> /etc/sysctl.conf
+      echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+      sysctl -p
+
   - name: Copy the join command to server location
     copy: src=join-command dest=/tmp/join-command.sh mode=0777
 
