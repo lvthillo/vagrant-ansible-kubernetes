@@ -85,7 +85,7 @@
     shell: echo 'Environment="KUBELET_EXTRA_ARGS=--node-ip={{ output.stdout }}"' >> /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
 
   - name: Initialize the Kubernetes cluster using kubeadm
-    command: kubeadm init --apiserver-advertise-address="192.168.50.10" --pod-network-cidr=192.168.0.0/16
+    command: kubeadm init --apiserver-advertise-address="192.168.50.10" --apiserver-cert-extra-sans="192.168.50.10" --pod-network-cidr=172.16.0.0/16
     
   - name: Setup kubeconfig for vagrant user
     command: "{{ item }}"
@@ -100,9 +100,16 @@
       echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
       sysctl -p
 
+  #- name: Install calico pod network
+  #  become: false
+  #  command: kubectl create -f https://docs.projectcalico.org/v3.5/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
   - name: Install calico pod network
     become: false
-    command: kubectl create -f https://docs.projectcalico.org/v3.5/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
+    shell: |
+      wget https://docs.projectcalico.org/v3.5/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml -O calico.yaml
+      sed -i "s/192.168.0.0/'"172.16.0.0/16"'/g" calico.yaml
+      kubectl apply -f calico.yaml
+
 
   - name: Generate join command
     command: kubeadm token create --print-join-command
