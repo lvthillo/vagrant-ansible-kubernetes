@@ -15,33 +15,14 @@
       - software-properties-common 
       - gnupg2
 
-  - name: Add an apt signing key for Docker
-    apt_key:
-      url: https://download.docker.com/linux/ubuntu/gpg
-      state: present
-
-  - name: Add apt repository for stable version
-    apt_repository:
-      repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
-      state: present
-
-  - name: Install docker and its dependecies
+  - name: Install containerd
     apt: 
       name: "{{ packages }}"
       state: present
       update_cache: yes
     vars:
       packages:
-      - containerd.io=1.2.13-2
-      - docker-ce=5:19.03.11~3-0~ubuntu-xenial
-      - docker-ce-cli=5:19.03.11~3-0~ubuntu-xenial
-    notify:
-      - docker status
-
-  - name: Add vagrant user to docker group
-    user:
-      name: vagrant
-      group: docker
+      - containerd
 
   - name: Remove swapfile from /etc/fstab
     mount:
@@ -74,16 +55,42 @@
       update_cache: yes
     vars:
       packages:
-        - kubelet=1.18.0-00
-        - kubeadm=1.18.0-00
-        - kubectl=1.18.0-00
+        - kubelet=1.20.0-00
+        - kubeadm=1.20.0-00
+        - kubectl=1.20.0-00
+
+  - name: Configure containerd
+    blockinfile:
+      create: true
+      path: /etc/modules-load.d/containerd.conf
+      block: |
+        overlay
+        br_netfilter
+
+  - name: Enable kernel modules
+    shell: |
+      modprobe overlay
+      modprobe br_netfilter
+
+  - name: Configure IP forwarding and iptables
+    blockinfile:
+      create: true
+      path: /etc/sysctl.conf
+      block: |
+        net.bridge.bridge-nf-call-iptables = 1
+        net.ipv4.ip_forward = 1
+
+  - name: Persist changes
+    command: sysctl -p
 
   - name: Get IP eth1 addr
     shell: ifconfig eth1 | grep 'inet' | cut -d{{':'}} -f2 | awk '{ print $2 }'
     register: output
 
   - name: Configure kubelet
-    shell: echo 'Environment="KUBELET_EXTRA_ARGS=--node-ip={{ output.stdout }}"' >> /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+    lineinfile:
+      path: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+      line: Environment="KUBELET_EXTRA_ARGS=--node-ip={{ output.stdout }}"
 
   - name: Initialize the Kubernetes cluster using kubeadm
     command: kubeadm init --apiserver-advertise-address="192.168.50.10" --apiserver-cert-extra-sans="192.168.50.10" --pod-network-cidr=172.16.0.0/16
@@ -92,22 +99,19 @@
     file:
       path: /home/vagrant/.kube
       state: directory
-    
+
   - name: Setup kubeconfig for vagrant user
-    command: "{{ item }}"
-    with_items:
-     - cp -i /etc/kubernetes/admin.conf /home/vagrant/.kube/config
-     - chown vagrant:vagrant /home/vagrant/.kube/config
+    copy:
+      src: /etc/kubernetes/admin.conf
+      dest: /home/vagrant/.kube/config
+      remote_src: yes
+      owner: vagrant
+      group: vagrant
+      mode: '0644'
 
-  - name: Disable IP tables
-    shell: |
-      echo "net.bridge.bridge-nf-call-iptables=1" >> /etc/sysctl.conf
-      echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
-      sysctl -p
-
-  - name: Download foo.conf
+  - name: Download calico.conf
     get_url:
-      url: https://docs.projectcalico.org/v3.15/manifests/calico.yaml
+      url: https://docs.projectcalico.org/v3.17/manifests/calico.yaml
       dest: /home/vagrant/calico.yaml
 
   - name: Add pod config to calico.yaml
@@ -133,7 +137,3 @@
   - name: Copy join command to local file
     become: false
     local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join-command"
-
-  handlers:
-  - name: docker status
-    service: name=docker state=started
