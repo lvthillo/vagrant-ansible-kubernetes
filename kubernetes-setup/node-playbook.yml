@@ -2,7 +2,7 @@
 - hosts: all
   become: true
   tasks:
-  - name: Install packages that allow apt to be used over HTTPS
+  - name: Install necessary packages
     apt:
       name: "{{ packages }}"
       state: present
