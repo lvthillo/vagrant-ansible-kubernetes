@@ -2,7 +2,7 @@
 - hosts: all
   become: true
   tasks:
-  - name: Install packages that allow apt to be used over HTTPS
+  - name: Install necessary packages
     apt:
       name: "{{ packages }}"
       state: present
@@ -14,6 +14,7 @@
       - curl
       - software-properties-common 
       - gnupg2
+      - net-tools
 
   - name: Install containerd
     apt: 
