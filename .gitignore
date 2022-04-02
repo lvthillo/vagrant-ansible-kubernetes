@@ -1,4 +1,4 @@
 .DS_Store
 .vagrant/
-kubernetes/join-command
-kubernetes/node-playbook.retry
+kubernetes-setup/join-command
+kubernetes-setup/node-playbook.retry

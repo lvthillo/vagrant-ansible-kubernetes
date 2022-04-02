@@ -56,9 +56,9 @@
       update_cache: yes
     vars:
       packages:
-        - kubelet=1.22.0-00
-        - kubeadm=1.22.0-00
-        - kubectl=1.22.0-00
+        - kubelet=1.23.0-00
+        - kubeadm=1.23.0-00
+        - kubectl=1.23.0-00
 
   - name: Configure containerd
     blockinfile:
